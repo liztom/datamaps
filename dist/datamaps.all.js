@@ -24,6 +24,8 @@
         },
         popupOnHover: true,
         highlightOnHover: true,
+        popupOnClick: false,
+        highlightOnClick: false,
         highlightFillColor: '#FC8D59',
         highlightBorderColor: 'rgba(250, 15, 160, 0.2)',
         highlightBorderWidth: 2
@@ -41,6 +43,10 @@
         fillOpacity: 0.75,
         animate: true,
         highlightOnHover: true,
+        popupOnClick: false,
+        changeOnClick: false,
+        fillColor: '#FFFFFF',
+        highlightOnClick: false,
         highlightFillColor: '#FC8D59',
         highlightBorderColor: 'rgba(250, 15, 160, 0.2)',
         highlightBorderWidth: 2,
@@ -175,7 +181,7 @@
 
     if ( options.highlightOnHover || options.popupOnHover ) {
       svg.selectAll('.datamaps-subunit')
-        .on('click', function(d) {
+        .on('mouseover', function(d) {
           var $this = d3.select(this);
 
           if ( options.highlightOnHover ) {
@@ -384,6 +390,8 @@
 
     var bubbles = layer.selectAll('circle.datamaps-bubble').data( data, JSON.stringify );
 
+    var map = "#" + this.options.element.id;
+
     bubbles
       .enter()
         .append('svg:circle')
@@ -425,7 +433,7 @@
           var fillColor = fillData[ datum.fillKey ];
           return fillColor || fillData.defaultFill;
         })
-        .on('click', function ( datum ) {
+        .on('mouseover', function ( datum ) {
           var $this = d3.select(this);
 
           if (options.highlightOnHover) {
@@ -458,9 +466,53 @@
             for ( var attr in previousAttributes ) {
               $this.style(attr, previousAttributes[attr]);
             }
+            d3.selectAll('.datamaps-hoverover').style('display', 'none');
           }
-
-          d3.selectAll('.datamaps-hoverover').style('display', 'none');
+        })
+        .on('click', function( datum ){
+          var $this = d3.select(this);
+          if (options.highlightOnClick) {
+            var allBubbles = d3.selectAll('.datamaps-bubble');
+            allBubbles
+              .style('fill', options.fillColor)
+              .style('stroke', options.borderColor)
+              .style('stroke-width', options.borderWidth)
+              .style('fill-opacity', options.fillOpacity)
+              .transition()
+              .attr('r', datum.radius)
+              .duration(500);
+            $this
+              .style('fill', options.highlightFillColor)
+              .style('stroke', options.highlightBorderColor)
+              .style('stroke-width', options.highlightBorderWidth)
+              .style('fill-opacity', options.highlightFillOpacity);
+          }
+          if (options.popupOnClick) {
+            self.clickUpdatePopup($this, datum, options, svg);
+          }
+          if (options.changeOnClick) {
+            // var position = d3.mouse(self.options.element);
+            var pointX   = parseFloat($this.attr('cx'));
+            var pointY   = parseFloat($this.attr('cy'));
+            
+            d3.selectAll('#star_1')
+              .remove();
+            d3.selectAll('.datamap')
+              .append('svg:polygon')
+              .attr('id', 'star_1')
+              .attr('visibility', 'visible')
+              .attr('points', self.calculateStarPoints(pointX, pointY, 5, 10, 5))
+              .style('fill', options.fillColor)
+              .style('opacity', 0)
+              .transition()
+              .style('opacity', 1)
+              .duration(500);
+            $this.style('fill', options.fillColor)
+                 .style('stroke', options.fillColor)
+                 .transition()
+                 .attr('r', 0)
+                 .duration(500);
+          }
         })
         .transition().duration(400)
           .attr('r', function ( datum ) {
@@ -472,7 +524,7 @@
         .delay(options.exitDelay)
         .attr("r", 0)
         .remove();
-
+    
     function datumHasCoords (datum) {
       return typeof datum !== 'undefined' && typeof datum.latitude !== 'undefined' && typeof datum.longitude !== 'undefined';
     }
@@ -12135,6 +12187,40 @@
 
     d3.select(self.svg[0][0].parentNode).select('.datamaps-hoverover').style('display', 'block');
   };
+
+  Datamap.prototype.clickUpdatePopup = function (element, d, options) {
+    var self = this; 
+    var position = d3.mouse(self.options.element);
+    d3.select(self.svg[0][0].parentNode)
+      .select('.datamaps-hoverover')
+      .style('top', ( (position[1] + 30)) + "px")
+      .html(function() {
+        var data = JSON.parse(element.attr('data-info'));
+        //if ( !data ) return '';
+        return options.popupTemplate(d, data);
+      })
+      .style('left', ( position[0]) + "px");
+
+    d3.select(self.svg[0][0].parentNode).select('.datamaps-hoverover').style('display', 'block');
+  };
+
+  Datamap.prototype.calculateStarPoints = function(centerX, centerY, arms, outerRadius, innerRadius){
+    var results = "";
+    var angle = Math.PI / arms;
+ 
+    for (var i = 0; i < 2 * arms; i++){
+      var r = (i & 1) === 0 ? outerRadius : innerRadius;
+      var currX = centerX + Math.cos(i * angle) * r;
+      var currY = centerY + Math.sin(i * angle) * r;
+ 
+      if (i === 0) {
+         results = currX + "," + currY;
+      } else{
+         results += ", " + currX + "," + currY;
+      }
+   }
+   return results;
+  }
 
   Datamap.prototype.addPlugin = function( name, pluginFn ) {
     var self = this;
