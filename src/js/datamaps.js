@@ -175,7 +175,7 @@
 
     if ( options.highlightOnHover || options.popupOnHover ) {
       svg.selectAll('.datamaps-subunit')
-        .on('mouseover', function(d) {
+        .on('click', function(d) {
           var $this = d3.select(this);
 
           if ( options.highlightOnHover ) {
@@ -425,7 +425,7 @@
           var fillColor = fillData[ datum.fillKey ];
           return fillColor || fillData.defaultFill;
         })
-        .on('mouseover', function ( datum ) {
+        .on('click', function ( datum ) {
           var $this = d3.select(this);
 
           if (options.highlightOnHover) {
